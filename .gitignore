@@ -2,3 +2,4 @@ local-files/
 n8n-data/
 waha1-data/
 waha2-data/
+.env
