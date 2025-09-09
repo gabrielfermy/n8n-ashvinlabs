@@ -1,0 +1,102 @@
+{
+  "name": "Figma to Code Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        280,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "headerAuth",
+        "httpBasicAuth": false,
+        "predefinedCredentialType": "httpBasicAuth",
+        "customAuthCredentials": {},
+        "sendJson": true,
+        "jsonBody": {
+          "model": "gpt-4o-2024-05-13",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a world-class code generation agent. Your task is to take a Figma link and use the Figma API to generate high-quality, clean HTML, CSS (using TailwindCSS), and JavaScript in a single HTML file. The user will provide the Figma link and a brief description of the desired output. Always put all code inside a single file."
+            },
+            {
+              "role": "user",
+              "content": "Generate a single-file HTML landing page from this Figma link: {{ $json.figma_link }}. Focus on creating a fully responsive and professional design."
+            }
+          ],
+          "max_tokens": 4000,
+          "stream": false
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.openAIKey.apiKey }}"
+            }
+          ]
+        },
+        "queryParameters": {},
+        "ignoreSSLErrors": false
+      },
+      "name": "Generate Code with OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        570,
+        280
+      ],
+      "credentials": {
+        "headerAuth": "openAIKey"
+      }
+    },
+    {
+      "parameters": {
+        "fileName": "index.html",
+        "filePath": "/tmp/index.html",
+        "fileContent": "={{ $json.choices[0].message.content }}",
+        "mode": "string"
+      },
+      "name": "Save HTML File",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [
+        860,
+        280
+      ],
+      "credentials": {}
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Generate Code with OpenAI",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Generate Code with OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Save HTML File",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  }
+}

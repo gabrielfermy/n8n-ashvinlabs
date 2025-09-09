@@ -1,0 +1,104 @@
+{
+  "name": "Laravel Build Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        280,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "mergedInput",
+              "value": "=JSON.stringify($json)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Prepare Data for LLM",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        570,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.google.com/search?q=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent",
+        "authentication": "predefined",
+        "httpBasicAuth": false,
+        "predefinedCredentialType": "httpBasicAuth",
+        "customAuthCredentials": {
+          "user": "bearer",
+          "password": "=Gemini_API_Key"
+        },
+        "sendJson": true,
+        "jsonBody": {
+          "contents": [
+            {
+              "parts": [
+                {
+                  "text": "You are a Laravel backend developer. I will provide you with a JSON object that contains structured data and an HTML file. Your task is to use this information to create a complete and runnable Laravel project, including all necessary files (e.g., controllers, models, routes, views, database migrations). Provide the file structure and the content for each file. Here is the input JSON: {{ $json.mergedInput }}"
+                }
+              ]
+            }
+          ],
+          "tools": [
+            {
+              "google_search": {}
+            }
+          ]
+        },
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    "queryParameters": {},
+    "ignoreSSLErrors": false
+    },
+    "name": "Generate Laravel Code",
+    "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 3,
+    "position": [
+      860,
+      280
+    ],
+    "credentials": {}
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data for LLM",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prepare Data for LLM": {
+      "main": [
+        [
+          {
+            "node": "Generate Laravel Code",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  }
+}

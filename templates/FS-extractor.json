@@ -1,0 +1,102 @@
+{
+  "name": "FS Doc Extractor Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        280,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.google.com/url?sa=E&source=gmail&q=https://api.perplexity.ai/chat/completions",
+        "authentication": "headerAuth",
+        "httpBasicAuth": false,
+        "predefinedCredentialType": "httpBasicAuth",
+        "customAuthCredentials": {},
+        "sendJson": true,
+        "jsonBody": {
+          "model": "llama-3-sonar-small-32k-online",
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a document extraction bot. Your task is to extract key information from a provided document link and format the output as a JSON object. The JSON should contain fields for 'DocumentTitle', 'Summary', 'KeyEntities', and 'Keywords'. The summary should be concise and no more than two sentences. The key entities should be a list of important people, places, or organizations mentioned."
+            },
+            {
+              "role": "user",
+              "content": "Extract information from the following document: {{ $json.doc_link }}"
+            }
+          ],
+          "max_tokens": 500,
+          "stream": false
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.perplexityApiKey.apiKey }}"
+            }
+          ]
+        },
+        "queryParameters": {},
+        "ignoreSSLErrors": false
+      },
+      "name": "Extract with Perplexity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        570,
+        280
+      ],
+      "credentials": {
+        "headerAuth": "perplexityApiKey"
+      }
+    },
+    {
+      "parameters": {
+        "fileName": "document_summary.json",
+        "filePath": "/tmp/{{ $json.document_title || 'document' }}.json",
+        "fileContent": "={{ JSON.stringify($json.choices[0].message.content, null, 2) }}",
+        "mode": "string"
+      },
+      "name": "Save Output to File",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [
+        860,
+        280
+      ],
+      "credentials": {}
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Extract with Perplexity",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract with Perplexity": {
+      "main": [
+        [
+          {
+            "node": "Save Output to File",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  }
+}

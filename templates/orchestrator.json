@@ -1,0 +1,192 @@
+{
+  "name": "Project MVP Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "webhookPath": "start-project-mvp",
+        "options": {
+          "authentication": false
+        }
+      },
+      "name": "Discord Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "id": "c92843d4-b9c2-4753-9031-6e82a93910c2",
+      "notesInFlow": false,
+      "position": [
+        480,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.content.startsWith('#start-project') }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "Check for Project Hashtag",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "id": "5a2d67d1-e945-4b09-b684-25088f1c8418",
+      "notesInFlow": false,
+      "position": [
+        680,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const discordContent = $json.body.content;\n\n// Regex to extract project name, Google Docs link, and Figma link\nconst regex = /#start-project\\s+(\\S+)\\s+(https:\\/\\/docs\\.google\\.com\\/document\\/d\\/\\S+)\\s+(https:\\/\\/www\\.figma\\.com\\/file\\/\\S+)/;\nconst match = discordContent.match(regex);\n\nif (match) {\n  const [fullMatch, projectName, googleDocLink, figmaLink] = match;\n  return [{\n    json: {\n      projectName,\n      googleDocLink,\n      figmaLink\n    }\n  }];\n} else {\n  throw new Error('Invalid message format. Use: #start-project [projectName] [googleDocLink] [figmaLink]');\n}\n",
+        "options": {}
+      },
+      "name": "Parse Discord Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "id": "769a6858-37c1-4b10-a2ac-5f04b2b28c11",
+      "notesInFlow": false,
+      "position": [
+        880,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_FS_DOC_EXTRACTOR_WORKFLOW_ID",
+        "waitForCompletion": true,
+        "mode": "json",
+        "inputs": "={\n  \"googleDocLink\": \"{{ $json.googleDocLink }}\",\n  \"projectName\": \"{{ $json.projectName }}\"\n}"
+      },
+      "name": "Execute FS Doc Extractor Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "id": "92e106b0-f463-441f-8255-a50d28d5d475",
+      "notesInFlow": false,
+      "position": [
+        1080,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_FIGMA_CONVERTER_WORKFLOW_ID",
+        "waitForCompletion": true,
+        "mode": "json",
+        "inputs": "={\n  \"figmaLink\": \"{{ $json.figmaLink }}\",\n  \"projectName\": \"{{ $json.projectName }}\"\n}"
+      },
+      "name": "Execute Figma to Code Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "id": "5039f67a-18b6-4074-b52e-687441865a7d",
+      "notesInFlow": false,
+      "position": [
+        1080,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_BUILD_LARAVEL_WORKFLOW_ID",
+        "waitForCompletion": true,
+        "mode": "json",
+        "inputs": "={\n  \"projectName\": \"{{ $('Parse Discord Message').item.json.projectName }}\",\n  \"fsDocData\": \"{{ $('Execute FS Doc Extractor Agent').item.json.fsDocData }}\",\n  \"figmaCode\": \"{{ $('Execute Figma to Code Agent').item.json.figmaCode }}\"\n}"
+      },
+      "name": "Execute Laravel Build Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "id": "71b2d4c0-0255-4670-8b63-d30925e0c609",
+      "notesInFlow": false,
+      "position": [
+        1280,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "webhookPath": "end-project-mvp",
+        "responseMode": "lastNode",
+        "responseContentType": "text/plain",
+        "options": {}
+      },
+      "name": "Final Webhook Response",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "id": "84a1e9c7-f0c1-4f1e-9201-92f72e7311f7",
+      "notesInFlow": false,
+      "position": [
+        1480,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "Discord Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check for Project Hashtag",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Check for Project Hashtag": {
+      "main": [
+        [
+          {
+            "node": "Parse Discord Message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Discord Message": {
+      "main": [
+        [
+          {
+            "node": "Execute FS Doc Extractor Agent",
+            "type": "main"
+          },
+          {
+            "node": "Execute Figma to Code Agent",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Execute FS Doc Extractor Agent": {
+      "main": [
+        [
+          {
+            "node": "Execute Laravel Build Agent",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Execute Figma to Code Agent": {
+      "main": [
+        [
+          {
+            "node": "Execute Laravel Build Agent",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Execute Laravel Build Agent": {
+      "main": [
+        [
+          {
+            "node": "Final Webhook Response",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  }
+}

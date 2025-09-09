@@ -1,0 +1,72 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - N8N_RUNNERS_ENABLED=true
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - TZ=${GENERIC_TIMEZONE}
+      - N8N_ALLOWED_HOSTNAMES=${SUBDOMAIN}.${DOMAIN_NAME},${WAHA_SUBDOMAIN}.${DOMAIN_NAME},${WAHA2_SUBDOMAIN}.${DOMAIN_NAME}
+      - N8N_EDITOR_BASE_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+      - ./local-files:/files
+    depends_on:
+      - postgres
+
+  waha1:
+    image: devlikeapro/waha
+    container_name: waha1
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - WAHA_API_KEY=waha-api-key
+      - WAHA_BASE_URL=https://${WAHA_SUBDOMAIN}.${DOMAIN_NAME}
+      - WAHA_SESSION=waha1_session
+    volumes:
+      - ./waha1-data:/app/data
+
+  waha2:
+    image: devlikeapro/waha
+    container_name: waha2
+    restart: always
+    ports:
+      - "127.0.0.1:3002:3000"
+    environment:
+      - WAHA_API_KEY=waha-api-key
+      - WAHA_BASE_URL=https://${WAHA2_SUBDOMAIN}.${DOMAIN_NAME}
+      - WAHA_SESSION=waha2_session
+    volumes:
+      - ./waha2-data:/app/data
+
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n
+      - POSTGRES_DB=n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  n8n_data:
+  waha1_data:
+  waha2_data:
+  postgres_data:
